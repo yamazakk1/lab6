@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% from 'pagination.html' import render_pagination %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Отзывы о курсе "{{ course.name }}"</h2>
+        <a href="{{ url_for('courses.show', course_id=course.id) }}" class="btn btn-outline-secondary">
+            ← Назад к курсу
+        </a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row align-items-end">
+                <div class="col-md-4">
+                    <label for="sort_by" class="form-label">Сортировка:</label>
+                    <select name="sort_by" id="sort_by" class="form-select">
+                        <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>
+                            Сначала новые
+                        </option>
+                        <option value="positive" {% if sort_by == 'positive' %}selected{% endif %}>
+                            Сначала положительные
+                        </option>
+                        <option value="negative" {% if sort_by == 'negative' %}selected{% endif %}>
+                            Сначала отрицательные
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-dark w-100">Применить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if current_user.is_authenticated and not user_review %}
+    <div class="card mb-4 border-primary">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Оставить отзыв</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('courses.create_review', course_id=course.id) }}">
+                <input type="hidden" name="next" value="{{ request.full_path }}">
+                <div class="mb-3">
+                    <label for="rating" class="form-label">Оценка:</label>
+                    <select name="rating" id="rating" class="form-select" required>
+                        <option value="5">5 — отлично</option>
+                        <option value="4">4 — хорошо</option>
+                        <option value="3">3 — удовлетворительно</option>
+                        <option value="2">2 — неудовлетворительно</option>
+                        <option value="1">1 — плохо</option>
+                        <option value="0">0 — ужасно</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="text" class="form-label">Текст отзыва:</label>
+                    <textarea name="text" id="text" class="form-control" rows="4" required 
+                              placeholder="Поделитесь своим мнением о курсе..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Отправить отзыв</button>
+            </form>
+        </div>
+    </div>
+    {% elif current_user.is_authenticated and user_review %}
+    <div class="alert alert-info">
+        <strong>Вы уже оставили отзыв на этот курс.</strong>
+        <p class="mb-0 mt-2">Ваша оценка: {{ user_review.rating }} | 
+        Дата: {{ user_review.created_at.strftime('%d.%m.%Y %H:%M') }}</p>
+    </div>
+    {% elif not current_user.is_authenticated %}
+    <div class="alert alert-secondary">
+        <a href="{{ url_for('auth.login') }}">Войдите</a>, чтобы оставить отзыв.
+    </div>
+    {% endif %}
+
+    <h4 class="mb-3">Все отзывы ({{ pagination.total }})</h4>
+    
+    {% for review in reviews %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <strong>{{ review.user.full_name }}</strong>
+                    <span class="text-muted ms-2">
+                        {{ review.created_at.strftime('%d.%m.%Y %H:%M') }}
+                    </span>
+                </div>
+                <div class="rating">
+                    <span class="fs-5">★</span>
+                    <span>{{ review.rating }}</span>
+                    <span class="text-muted ms-1">/ 5</span>
+                </div>
+            </div>
+            <p class="card-text">{{ review.text }}</p>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-secondary text-center">
+        Пока нет отзывов. Будьте первым, кто оценит этот курс!
+    </div>
+    {% endfor %}
+
+    <div class="mt-4">
+        {{ render_pagination(pagination, 'courses.reviews_list', {'course_id': course.id, 'sort_by': sort_by}) }}
+    </div>
+</div>
+{% endblock %}
